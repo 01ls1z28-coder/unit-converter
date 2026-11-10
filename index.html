@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#05060a">
+  <meta name="description" content="Universal unit converter with exact SI / NIST definitions and rational arithmetic.">
+  <title>Unit Converter</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body class="obs">
+  <div class="shell">
+    <nav class="hubnav" aria-label="Tools">
+      <a class="hub-pill" href="https://velocitybench.com/"><span class="hub-dot" aria-hidden="true"></span>Tools Hub</a>
+      <span class="hub-here">Calculators</span>
+    </nav>
+
+    <header class="top">
+      <p class="kicker">Calculators · Exact conversions</p>
+      <h1>Unit Converter</h1>
+      <p class="top-lede">Exact SI &amp; NIST definitions, computed with whole-number fractions. Nothing is rounded until it is shown.</p>
+    </header>
+
+    <div class="controls">
+      <div class="search" role="search">
+        <label class="sr" for="q">Search all units</label>
+        <span class="search-ico" aria-hidden="true"></span>
+        <input id="q" type="search" placeholder="Search units (mph, psi, lb·ft…)" autocomplete="off" spellcheck="false"
+               role="combobox" aria-expanded="false" aria-controls="q-list" aria-autocomplete="list">
+        <kbd class="kbd" aria-hidden="true">/</kbd>
+        <ul id="q-list" class="q-list" role="listbox" aria-label="Matching units" hidden></ul>
+      </div>
+      <div id="tabs" class="tabs" role="tablist" aria-label="Categories"></div>
+    </div>
+
+    <main>
+      <section class="conv card" aria-labelledby="conv-h">
+        <h2 id="conv-h" class="sr">Converter</h2>
+        <div class="conv-grid">
+          <div class="side side-from">
+            <label class="lbl" for="from-val">From</label>
+            <input id="from-val" class="num-in" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="1" aria-describedby="in-msg">
+            <label class="sr" for="from-unit">From unit</label>
+            <select id="from-unit" class="unit-sel"></select>
+            <p id="in-msg" class="in-msg" aria-live="polite"></p>
+          </div>
+
+          <button id="swap" class="swap" type="button" aria-label="Swap units" title="Swap units (Alt+S)">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M7 4v13m0 0-3.5-3.5M7 17l3.5-3.5M17 20V7m0 0-3.5 3.5M17 7l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+
+          <div class="side side-to">
+            <span class="lbl" id="to-lbl">To</span>
+            <output id="result" class="result" for="from-val from-unit to-unit" aria-labelledby="to-lbl" aria-live="polite">—</output>
+            <label class="sr" for="to-unit">To unit</label>
+            <select id="to-unit" class="unit-sel"></select>
+            <div class="chips" id="chips"></div>
+          </div>
+        </div>
+
+        <div class="conv-foot">
+          <p id="equation" class="equation"></p>
+          <div class="actions">
+            <button id="copy" class="btn btn-primary" type="button">Copy result</button>
+          </div>
+        </div>
+
+        <div class="precision" role="group" aria-label="Display precision">
+          <label for="p-mode">Show</label>
+          <select id="p-mode">
+            <option value="sig">Significant figures</option>
+            <option value="dec">Decimal places</option>
+          </select>
+          <label class="sr" for="p-digits">Digits</label>
+          <div class="stepper">
+            <button type="button" class="step" data-step="-1" aria-label="Fewer digits">−</button>
+            <input id="p-digits" type="number" min="1" max="40" value="10" inputmode="numeric">
+            <button type="button" class="step" data-step="1" aria-label="More digits">+</button>
+          </div>
+          <label class="check"><input id="p-trim" type="checkbox" checked> Trim trailing zeros</label>
+          <label class="check"><input id="p-group" type="checkbox" checked> Group digits</label>
+        </div>
+
+        <details class="full" id="full">
+          <summary>Full precision</summary>
+          <div class="full-body">
+            <p class="full-k" id="full-kind"></p>
+            <p class="full-lbl">Decimal</p>
+            <p class="full-v mono" id="full-dec"></p>
+            <p class="full-lbl">Exact fraction</p>
+            <p class="full-v mono" id="full-frac"></p>
+            <div class="actions"><button id="copy-full" class="btn" type="button">Copy full decimal</button></div>
+          </div>
+        </details>
+      </section>
+
+      <section class="card table-card" aria-labelledby="all-h">
+        <div class="card-head">
+          <h2 id="all-h">All <span id="all-cat">units</span> units</h2>
+          <p class="card-sub" id="all-sub"></p>
+        </div>
+        <div class="table-wrap">
+          <table class="all" id="all">
+            <thead><tr><th scope="col">Unit</th><th scope="col" class="r">Value</th><th scope="col" class="c"><span class="sr">Copy</span></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card defs" aria-labelledby="defs-h">
+        <h2 id="defs-h">Definitions in use</h2>
+        <div id="defs"></div>
+      </section>
+
+      <section class="card sources" aria-labelledby="src-h">
+        <h2 id="src-h">Sources &amp; conventions</h2>
+        <p class="muted">Every factor is an exact definition from the sources below, or a named convention. Conversions go through the SI unit of each quantity as exact fractions (BigInt), so values like 0.1 never turn into 0.1000000000000000055. Rounding is half away from zero and happens only for display.</p>
+        <ul id="src-list" class="src-list"></ul>
+        <ul class="conv-notes">
+          <li><b>Mach</b> uses the ICAO / ISA sea-level speed of sound, 340.294 m/s at 15 °C. Real Mach depends on air temperature.</li>
+          <li><b>Mercury and water columns</b> (mmHg, inHg, inH₂O, mmH₂O) use the conventional densities in NIST SP 811: 13 595.1 kg/m³ (0 °C / 32 °F) and 1000 kg/m³, with g₀ = 9.806 65 m/s². Torr is exactly 101 325 / 760 Pa.</li>
+          <li><b>Survey vs international:</b> foot, mile and acre default to the international foot (0.3048 m). US survey versions (1200/3937 m) are listed separately and are deprecated since 2023.</li>
+          <li><b>Calories &amp; BTU:</b> thermochemical (4.184 J) and International Table (4.1868 J) are separate units. BTU_IT is exactly 1055.055 852 62 J.</li>
+          <li><b>Horsepower:</b> mechanical 550 ft·lbf/s, metric PS 75 kgf·m/s = 735.498 75 W, electric 746 W.</li>
+          <li><b>Data:</b> SI prefixes (kB = 1000 B) and IEC binary prefixes (KiB = 1024 B) are kept apart.</li>
+          <li><b>Angles:</b> degree, gon, arcminute, arcsecond, turn and NATO mil convert exactly. Radian units need π, which is carried to 75 decimal places.</li>
+          <li><b>Fuel economy:</b> L/100 km and gal/100 mi are inverse units. 0 converts to ∞.</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <strong>Created by Jorge Guerra</strong>
+      <p class="footer-note">Works offline. No tracking, no network requests.</p>
+    </footer>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/units.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
