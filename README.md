@@ -11,7 +11,7 @@ Double-click `index.html`. It works from `file://` with no server and no network
 - `index.html` is the page.
 - `css/app.css` holds the Obsidian theme.
 - `js/units.js` is the exact unit library (BigInt rationals, factors, sources) and defines `UnitsLib`.
-- `js/app.js` is the UI: tabs, search, swap, copy, precision, all-units table and full-precision view.
+- `js/app.js` is the UI: an always-visible category grid, always-visible From/To unit pickers (common units first), search, swap, copy, precision, all-units table and full-precision view.
 - `tests/accuracy-test.js` is the accuracy test. Run it with `node tests/accuracy-test.js`. The page never loads it.
 
 ## Accuracy
@@ -25,5 +25,5 @@ Double-click `index.html`. It works from `file://` with no server and no network
 
 ## Keyboard
 - `/` focuses search. Use ↑/↓ and Enter to pick a unit as **From**, Shift+Enter to pick it as **To**, and Esc to close.
-- ←/→ move between category tabs.
+- In the category grid and in each unit picker, arrow keys move and select, and Home/End jump to the first or last item.
 - Alt+S swaps the units.

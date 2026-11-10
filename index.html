@@ -31,7 +31,8 @@
         <kbd class="kbd" aria-hidden="true">/</kbd>
         <ul id="q-list" class="q-list" role="listbox" aria-label="Matching units" hidden></ul>
       </div>
-      <div id="tabs" class="tabs" role="tablist" aria-label="Categories"></div>
+      <p class="cats-lbl" id="cats-lbl">Category</p>
+      <div id="cats" class="cats" role="radiogroup" aria-labelledby="cats-lbl"></div>
     </div>
 
     <main>
@@ -39,10 +40,11 @@
         <h2 id="conv-h" class="sr">Converter</h2>
         <div class="conv-grid">
           <div class="side side-from">
-            <label class="lbl" for="from-val">From</label>
-            <input id="from-val" class="num-in" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="1" aria-describedby="in-msg">
-            <label class="sr" for="from-unit">From unit</label>
-            <select id="from-unit" class="unit-sel"></select>
+            <label class="lbl" for="from-val">From <span class="lbl-unit" id="from-name"></span></label>
+            <div class="field">
+              <input id="from-val" class="num-in" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="1" aria-describedby="in-msg">
+              <span class="field-sym" id="from-sym" aria-hidden="true"></span>
+            </div>
             <p id="in-msg" class="in-msg" aria-live="polite"></p>
           </div>
 
@@ -51,11 +53,21 @@
           </button>
 
           <div class="side side-to">
-            <span class="lbl" id="to-lbl">To</span>
-            <output id="result" class="result" for="from-val from-unit to-unit" aria-labelledby="to-lbl" aria-live="polite">—</output>
-            <label class="sr" for="to-unit">To unit</label>
-            <select id="to-unit" class="unit-sel"></select>
+            <span class="lbl" id="to-lbl">To <span class="lbl-unit" id="to-name"></span></span>
+            <div class="field field-out">
+              <output id="result" class="result" for="from-val" aria-labelledby="to-lbl" aria-live="polite">—</output>
+              <span class="field-sym" id="to-sym" aria-hidden="true"></span>
+            </div>
             <div class="chips" id="chips"></div>
+          </div>
+
+          <div class="pick-wrap pick-from">
+            <p class="pick-h" id="from-pick-h"><span class="pick-dot"></span>From unit</p>
+            <div id="from-pick" class="picker" role="radiogroup" aria-labelledby="from-pick-h"></div>
+          </div>
+          <div class="pick-wrap pick-to">
+            <p class="pick-h" id="to-pick-h"><span class="pick-dot"></span>To unit</p>
+            <div id="to-pick" class="picker" role="radiogroup" aria-labelledby="to-pick-h"></div>
           </div>
         </div>
 
@@ -67,11 +79,11 @@
         </div>
 
         <div class="precision" role="group" aria-label="Display precision">
-          <label for="p-mode">Show</label>
-          <select id="p-mode">
-            <option value="sig">Significant figures</option>
-            <option value="dec">Decimal places</option>
-          </select>
+          <span class="p-lbl" id="p-mode-lbl">Show</span>
+          <div class="seg" id="p-mode" role="radiogroup" aria-labelledby="p-mode-lbl">
+            <button type="button" role="radio" data-id="sig">Significant figures</button>
+            <button type="button" role="radio" data-id="dec">Decimal places</button>
+          </div>
           <label class="sr" for="p-digits">Digits</label>
           <div class="stepper">
             <button type="button" class="step" data-step="-1" aria-label="Fewer digits">−</button>

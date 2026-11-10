@@ -23,42 +23,124 @@
   }
   function save() { try { localStorage.setItem('uc-state', JSON.stringify(state)); } catch (e) {} }
 
-  // ------------------------------------------------------------- tabs
-  function buildTabs() {
-    var t = $('tabs'); t.innerHTML = '';
-    L.CATS.forEach(function (c) {
-      var b = document.createElement('button');
-      b.type = 'button'; b.className = 'tab'; b.setAttribute('role', 'tab'); b.id = 'tab-' + c.id;
-      b.dataset.cat = c.id; b.textContent = c.name;
-      b.addEventListener('click', function () { setCat(c.id); });
-      t.appendChild(b);
-    });
-    t.addEventListener('keydown', function (e) {
-      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft' && e.key !== 'Home' && e.key !== 'End') return;
-      var ids = L.CATS.map(function (c) { return c.id; }), i = ids.indexOf(state.cat);
-      if (e.key === 'ArrowRight') i = (i + 1) % ids.length;
-      else if (e.key === 'ArrowLeft') i = (i - 1 + ids.length) % ids.length;
-      else if (e.key === 'Home') i = 0; else i = ids.length - 1;
-      e.preventDefault(); setCat(ids[i]); $('tab-' + ids[i]).focus();
+  // ------------------------------------------------------------- categories (all visible)
+  // Simple line icons (inline SVG paths, 24×24, stroke = currentColor). No external assets.
+  var ICONS = {
+    length: 'M3 8h18v8H3zM7 8v3M11 8v4M15 8v3M19 8v4',
+    area: 'M4 4h16v16H4zM4 12h16M12 4v16',
+    volume: 'M7 3h10M8 3v5l-4 11a1.5 1.5 0 0 0 1.4 2h13.2a1.5 1.5 0 0 0 1.4-2L16 8V3M6 15h12',
+    mass: 'M9 7a3 3 0 1 1 6 0M6 7h12l3 13H3z',
+    speed: 'M4 17a8 8 0 1 1 16 0M12 17l4-6M12 17h.01',
+    accel: 'M3 12h13M12 7l5 5-5 5M19 6v12M3 7h4M3 17h4',
+    force: 'M3 12h12M10 7l5 5-5 5M19 4v16',
+    pressure: 'M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM12 13l3-3M12 3v2',
+    temp: 'M10 14V5a2 2 0 1 1 4 0v9a4 4 0 1 1-4 0zM12 9v7',
+    energy: 'M13 3L5 14h6l-1 7 8-11h-6z',
+    power: 'M12 3v8M7 6a7 7 0 1 0 10 0',
+    torque: 'M20 12a8 8 0 1 1-3-6.2M17 2v4h-4M12 12h.01',
+    density: 'M4 7l8-4 8 4v10l-8 4-8-4zM4 7l8 4 8-4M12 11v10',
+    flow: 'M3 9c3-3 6 3 9 0s6 3 9 0M3 15c3-3 6 3 9 0s6 3 9 0',
+    data: 'M5 6c0-1.7 3.1-3 7-3s7 1.3 7 3-3.1 3-7 3-7-1.3-7-3zM5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3',
+    time: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
+    angle: 'M4 20h16M4 20L16 5M10 20a6 6 0 0 0-2.3-4.7',
+    freq: 'M2 12c2-6 4-6 5 0s3 6 5 0 3-6 5 0 3 6 5 0',
+    fuel: 'M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h12M6 8h6M14 10h2a2 2 0 0 1 2 2v4a1.5 1.5 0 0 0 3 0V8l-3-3'
+  };
+  function svgIcon(id) {
+    return '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false"><path d="' + (ICONS[id] || ICONS.length) +
+      '" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+  // Roving-tabindex radio group: arrows move + select, Home/End jump.
+  function radioKeys(group, onPick) {
+    group.addEventListener('keydown', function (e) {
+      var keys = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1, Home: 0, End: 0 };
+      if (!(e.key in keys)) return;
+      var items = Array.prototype.slice.call(group.querySelectorAll('[role="radio"]'));
+      var i = items.indexOf(document.activeElement); if (i < 0) return;
+      if (e.key === 'Home') i = 0; else if (e.key === 'End') i = items.length - 1;
+      else i = (i + keys[e.key] + items.length) % items.length;
+      e.preventDefault(); onPick(items[i].dataset.id); var el = group.querySelector('[data-id="' + items[i].dataset.id + '"]'); if (el) el.focus();
     });
   }
+  function buildCats() {
+    var g = $('cats'); g.innerHTML = '';
+    L.CATS.forEach(function (c) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'cat-btn'; b.setAttribute('role', 'radio'); b.id = 'cat-' + c.id; b.dataset.id = c.id;
+      b.innerHTML = svgIcon(c.id) + '<span class="cat-name"></span><span class="cat-n"></span>';
+      b.querySelector('.cat-name').textContent = c.name;
+      b.querySelector('.cat-n').textContent = c.units.length + ' units';
+      b.title = c.name + ' — ' + c.units.length + ' units';
+      b.addEventListener('click', function () { setCat(c.id); });
+      g.appendChild(b);
+    });
+    radioKeys(g, function (id) { setCat(id); });
+  }
   function paintTabs() {
-    Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
-      var on = b.dataset.cat === state.cat;
-      b.classList.toggle('is-on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1;
-      if (on && b.scrollIntoView) { var p = b.parentNode; var l = b.offsetLeft - p.clientWidth / 2 + b.clientWidth / 2; p.scrollTo ? p.scrollTo({ left: l, behavior: 'smooth' }) : (p.scrollLeft = l); }
+    Array.prototype.forEach.call(document.querySelectorAll('.cat-btn'), function (b) {
+      var on = b.dataset.id === state.cat;
+      b.classList.toggle('is-on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1;
     });
   }
 
-  function fillSelects() {
-    var c = L.getCat(state.cat);
-    ['from-unit', 'to-unit'].forEach(function (id) {
-      var s = $(id); s.innerHTML = '';
-      c.units.forEach(function (u) {
-        var o = document.createElement('option'); o.value = u.id; o.textContent = u.sym + ' — ' + u.name; s.appendChild(o);
+  // ------------------------------------------------------------- unit pickers (all visible)
+  // Common units first (display order only — no effect on the math), then the rest in library order.
+  var COMMON = {
+    length: ['m', 'km', 'cm', 'mm', 'in', 'ft', 'yd', 'mi'], area: ['m2', 'ft2', 'ac', 'ha', 'km2', 'mi2'],
+    volume: ['L', 'mL', 'gal', 'qt', 'cup', 'floz', 'igal', 'm3', 'ft3', 'in3', 'cc'], mass: ['kg', 'g', 'lb', 'oz', 't', 'st'],
+    speed: ['mph', 'kmh', 'mps', 'fps', 'kn', 'mach'], accel: ['g0', 'mps2', 'fps2'], force: ['N', 'lbf', 'kgf', 'kN'],
+    pressure: ['psi', 'bar', 'kPa', 'Pa', 'atm', 'inHg', 'mmHg'], temp: ['C', 'F', 'K', 'Ra'],
+    energy: ['J', 'kJ', 'kWh', 'kcalth', 'btu', 'ftlbf'], power: ['hp', 'kW', 'W', 'PS'], torque: ['lbft', 'Nm', 'lbin', 'kgfm'],
+    density: ['kgm3', 'gcm3', 'lbft3', 'lbgal'], flow: ['Lmin', 'gpm', 'cfm', 'm3h'], data: ['B', 'kB', 'MB', 'GB', 'TB', 'KiB', 'MiB', 'GiB'],
+    time: ['s', 'min', 'h', 'd', 'wk', 'yr'], angle: ['deg', 'rad', 'turn'], freq: ['Hz', 'rpm', 'kHz', 'MHz'], fuel: ['mpg', 'L100', 'kmL', 'mpgi']
+  };
+  function orderedUnits(c) {
+    var common = (COMMON[c.id] || []).filter(function (id) { return c.map[id]; });
+    var rest = c.units.filter(function (u) { return common.indexOf(u.id) < 0; });
+    return { common: common.map(function (id) { return c.map[id]; }), rest: rest };
+  }
+  var builtCat = null;
+  function buildPicker(side) {
+    var c = L.getCat(state.cat), g = $(side + '-pick'), o = orderedUnits(c);
+    g.innerHTML = '';
+    function sec(label, list) {
+      if (!list.length) return;
+      if (o.rest.length && o.common.length) { var h = document.createElement('p'); h.className = 'pick-sec'; h.textContent = label; h.setAttribute('aria-hidden', 'true'); g.appendChild(h); }
+      list.forEach(function (u) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'u-chip'; b.setAttribute('role', 'radio'); b.dataset.id = u.id;
+        b.innerHTML = '<span class="u-chip-sym"></span><span class="u-chip-name"></span>';
+        b.firstChild.textContent = u.sym; b.lastChild.textContent = u.name;
+        b.setAttribute('aria-label', u.name + ' (' + u.sym + ')');
+        b.addEventListener('click', function () { pickUnit(side, u.id); });
+        g.appendChild(b);
       });
+    }
+    sec('Common', o.common); sec('More ' + c.name.toLowerCase(), o.rest);
+  }
+  function pickUnit(side, id) {
+    if (side === 'from') { if (id === state.to) state.to = state.from; state.from = id; }
+    else { if (id === state.from) state.from = state.to; state.to = id; }
+    render();
+  }
+  function paintPickers() {
+    var c = L.getCat(state.cat);
+    ['from', 'to'].forEach(function (side) {
+      var sel = state[side], other = state[side === 'from' ? 'to' : 'from'];
+      Array.prototype.forEach.call($(side + '-pick').querySelectorAll('.u-chip'), function (b) {
+        var on = b.dataset.id === sel;
+        b.classList.toggle('is-on', on); b.classList.toggle('is-other', b.dataset.id === other);
+        b.setAttribute('aria-checked', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1;
+        b.title = b.dataset.id === other ? 'Pick to swap with the ' + (side === 'from' ? 'To' : 'From') + ' unit' : '';
+      });
+      var u = c.map[sel];
+      $(side + '-sym').textContent = u.sym;
+      $(side + '-name').textContent = u.name;
     });
-    $('from-unit').value = state.from; $('to-unit').value = state.to;
+  }
+  function fillSelects() {
+    if (builtCat !== state.cat) { buildPicker('from'); buildPicker('to'); builtCat = state.cat; }
+    paintPickers();
   }
 
   function setCat(id, from, to) {
@@ -80,10 +162,11 @@
 
   function render() {
     save();
+    fillSelects();
     var c = L.getCat(state.cat), fu = c.map[state.from], tu = c.map[state.to];
     var msg = $('in-msg'), out = $('result'), chips = $('chips');
     msg.textContent = ''; msg.className = 'in-msg'; chips.innerHTML = '';
-    $('from-val').classList.remove('bad');
+    $('from-val').parentNode.classList.remove('bad');
     var p = L.parseInput(state.raw), err = null;
     if (p.empty) err = 'Enter a value';
     else if (p.error) err = p.error + ' — try 1234.5, -3, 1.2e-5 or 1,234.5';
@@ -92,7 +175,7 @@
     $('all-cat').textContent = c.name.toLowerCase();
     $('all-sub').textContent = '';
     if (err) {
-      if (!p.empty) { $('from-val').classList.add('bad'); msg.classList.add('err'); }
+      if (!p.empty) { $('from-val').parentNode.classList.add('bad'); msg.classList.add('err'); }
       msg.textContent = err; out.textContent = '—'; out.classList.remove('long');
       last = null; renderFull(null); renderTable(null); renderDefs(c, fu, tu); renderEquation(c, fu, tu);
       return;
@@ -183,7 +266,7 @@
       b.innerHTML = '<span class="u-sym"></span><span class="u-name"></span>';
       b.firstChild.textContent = u.sym; b.lastChild.textContent = u.name;
       b.title = 'Convert to ' + u.name;
-      b.addEventListener('click', function () { state.to = u.id === state.from ? state.to : u.id; if (u.id === state.from) return; $('to-unit').value = state.to; render(); $('result').scrollIntoView && window.innerWidth < 860 && $('result').scrollIntoView({ block: 'center', behavior: 'smooth' }); });
+      b.addEventListener('click', function () { state.to = u.id === state.from ? state.to : u.id; if (u.id === state.from) return; render(); $('result').scrollIntoView && window.innerWidth < 860 && $('result').scrollIntoView({ block: 'center', behavior: 'smooth' }); });
       th.appendChild(b); tr.appendChild(th);
       var td = document.createElement('td'); td.className = 'r mono';
       var plain = '';
@@ -297,18 +380,21 @@
   // ------------------------------------------------------------- wire up
   function init() {
     load();
-    buildTabs(); buildSources();
+    buildCats(); buildSources();
+    radioKeys($('from-pick'), function (id) { pickUnit('from', id); });
+    radioKeys($('to-pick'), function (id) { pickUnit('to', id); });
     $('from-val').value = state.raw;
-    $('p-mode').value = state.mode; $('p-digits').value = state.digits; $('p-trim').checked = state.trim; $('p-group').checked = state.group;
+    paintMode(); $('p-digits').value = state.digits; $('p-trim').checked = state.trim; $('p-group').checked = state.group;
     fillSelects(); paintTabs();
 
     $('from-val').addEventListener('input', function () { state.raw = this.value; render(); });
-    $('from-unit').addEventListener('change', function () { if (this.value === state.to) state.to = state.from; state.from = this.value; fillSelects(); render(); });
-    $('to-unit').addEventListener('change', function () { if (this.value === state.from) state.from = state.to; state.to = this.value; fillSelects(); render(); });
     $('swap').addEventListener('click', swap);
     $('copy').addEventListener('click', function () { if (last) copyText(last.f.plain, last.f.plain + ' ' + L.getCat(state.cat).map[state.to].sym); });
     $('copy-full').addEventListener('click', function () { if (last && last.full) copyText(last.full, 'full decimal'); });
-    $('p-mode').addEventListener('change', function () { state.mode = this.value; render(); });
+    Array.prototype.forEach.call($('p-mode').querySelectorAll('button'), function (b) {
+      b.addEventListener('click', function () { setMode(b.dataset.id); });
+    });
+    radioKeys($('p-mode'), setMode);
     $('p-digits').addEventListener('input', function () { var v = parseInt(this.value, 10); if (v >= 0 && v <= 40) { state.digits = Math.max(state.mode === 'sig' ? 1 : 0, v); render(); } });
     Array.prototype.forEach.call(document.querySelectorAll('.step'), function (b) {
       b.addEventListener('click', function () { var v = Math.min(40, Math.max(state.mode === 'sig' ? 1 : 0, state.digits + +b.dataset.step)); state.digits = v; $('p-digits').value = v; render(); });
@@ -332,6 +418,12 @@
       if (e.altKey && (e.key === 's' || e.key === 'S' || e.code === 'KeyS')) { e.preventDefault(); swap(); }
     });
     render();
+  }
+  function setMode(m) { state.mode = m; if (m === 'sig' && state.digits < 1) { state.digits = 1; $('p-digits').value = 1; } paintMode(); render(); }
+  function paintMode() {
+    Array.prototype.forEach.call($('p-mode').querySelectorAll('button'), function (b) {
+      var on = b.dataset.id === state.mode; b.classList.toggle('is-on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1;
+    });
   }
   function scrollActive() { var el = $('q-opt-' + active); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' }); }
   function swap() {
